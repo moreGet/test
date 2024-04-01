@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class GetModusignDocumentsDto {
@@ -20,9 +21,7 @@ public class GetModusignDocumentsDto {
     @NoArgsConstructor(access = AccessLevel.PROTECTED)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Response {
-
         long count;
-
         List<DocumentData> documents;
     }
 
@@ -48,9 +47,9 @@ public class GetModusignDocumentsDto {
         // 참여자
         List<ParticipantData> participants;
 
-        public String getStatus() {
-            return status.getDescription();
-        }
+        LocalDateTime updatedAt;
+
+        LocalDateTime createdAt;
     }
 
     @Getter

@@ -32,7 +32,7 @@ public class GetModusignDocumentHistoriesDto {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class HistoryData {
         private String message;
-        private Timestamp timestamp;
+        private LocalDateTime timestamp;
         private ModusignDocumentHistoryStatus action;
 
         private GeneratorData generator;
@@ -41,7 +41,7 @@ public class GetModusignDocumentHistoriesDto {
 
     @Getter
     @Setter
-    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    @NoArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class GeneratorData {
         private HistoryDataType type;

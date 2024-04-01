@@ -1,19 +1,21 @@
 package com.example;
 
 import com.example.domain.*;
+import com.example.domain.code.HistoryDataType;
 import com.example.domain.code.LocationCode;
-import com.example.dto.DocJson;
-import com.example.dto.GetModusignDocumentHistoriesDto;
-import com.example.dto.GetModusignDocumentsDto;
+import com.example.domain.code.ModusignDocumentStatus;
+import com.example.dto.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequestMapping("/location")
@@ -92,6 +94,7 @@ public class TestApi {
 
     @GetMapping("/history")
     public ResponseEntity<?> getHistory(@RequestParam Long option) throws JsonProcessingException {
+        om.registerModule(new JavaTimeModule());
         DocJson docJson = new DocJson();
 
         String jsonDocuments = docJson.getDocuments();
@@ -101,13 +104,50 @@ public class TestApi {
             GetModusignDocumentsDto.Response documents =
                     om.readValue(jsonDocuments, GetModusignDocumentsDto.Response.class);
 
-            return ResponseEntity.ok(documents);
+            List<GetContractInformationsDto.Response> contractInformations =
+                    documents.getDocuments().stream().map(GetContractInformationsDto.Response::fromEntity).toList();
+
+            return ResponseEntity.ok(contractInformations);
         } else {
             GetModusignDocumentHistoriesDto.Response documentHistories =
                     om.readValue(jsonDocumentDetail, GetModusignDocumentHistoriesDto.Response.class);
 
-            documentHistories.getHistories().forEach(h -> log.info("getMessage : {}", h.getMessage()));
-            return ResponseEntity.ok(documentHistories);
+            /**
+             * 화면 대로 작성
+             */
+            List<GetModusignDocumentHistoriesDto.HistoryData> histories = documentHistories.getHistories();
+
+            // 오름 차순 정렬
+            histories.sort(Comparator.comparing(GetModusignDocumentHistoriesDto.HistoryData::getTimestamp));
+            Map<String, GetContractInformationDetailsDto.ParticipantData> collect = histories.stream()
+                    .filter(h -> h.getGenerator().getType().equals(HistoryDataType.SYSTEM)
+                            || h.getGenerator().getType().equals(HistoryDataType.PARTICIPANT))
+                    .peek(h -> {
+                        if (h.getGenerator().getType().equals(HistoryDataType.SYSTEM)) {
+                            GetModusignDocumentHistoriesDto.GeneratorData generatorData = new GetModusignDocumentHistoriesDto.GeneratorData();
+                            GetModusignDocumentHistoriesDto.TargetData targetData = h.getTarget();
+
+                            generatorData.setType(targetData.getType());
+                            generatorData.setName(targetData.getName());
+                            generatorData.setContact(targetData.getContact());
+                            
+                            h.setGenerator(generatorData);
+                        }
+                    })
+                    .collect(Collectors.toMap(
+                            h -> h.getGenerator().getContact(),
+                            h -> new GetContractInformationDetailsDto.ParticipantData(
+                                    h.getMessage(), h.getGenerator().getName(), h.getGenerator().getContact(),
+                                    h.getTimestamp(), h.getAction()),
+
+                            // 중복 키 덮어씌우기
+                            (existing, replacement) -> replacement
+                    ));
+
+            ArrayList<GetContractInformationDetailsDto.ParticipantData> participantData = new ArrayList<>(collect.values());
+            GetContractInformationDetailsDto.Response contractInformationDetails =
+                    new GetContractInformationDetailsDto.Response("모두싸인부모ID", ModusignDocumentStatus.ON_GOING, participantData);
+            return ResponseEntity.ok(contractInformationDetails);
         }
     }
 }
