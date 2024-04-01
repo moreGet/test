@@ -1,0 +1,14 @@
+# https://docs.docker.com/compose/compose-file/compose-file-v3/
+version: "3" # COMPOSE VERSION
+
+services:
+  db:
+    image: mysql
+    #    image: dx-dockerhub.ktis.co.kr/mariadb:v20240305
+    container_name: test-mysql
+    restart: always # 컨테이너 DOWN시 재시작 정책
+    environment: # 환경 변수
+      - MYSQL_ROOT_PASSWORD=1234
+      - MYSQL_DATABASE=townboard
+    ports: # -p 옵션
+      - "13306:3306"

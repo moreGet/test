@@ -1,0 +1,16 @@
+server:
+  port: 8080
+spring:
+  h2:
+    console:
+      enabled: false
+  datasource:
+    url: jdbc:mysql://localhost:13306/townboard
+    username: root
+    password: 1234
+    driverClassName: com.mysql.cj.jdbc.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
